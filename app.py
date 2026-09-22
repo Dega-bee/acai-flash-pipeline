@@ -12,7 +12,7 @@ st.set_page_config(
 
 BASE_DIR = Path(__file__).resolve().parent
 
-# Estilização CSS Personalizada (Fundo Roxo Claro, Botões Roxo Escuro, Fonte Moderna)
+# Estilização CSS Personalizada
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
@@ -22,91 +22,83 @@ st.markdown("""
         font-family: 'Plus Jakarta Sans', sans-serif !important;
     }
 
-    /* Fundo Roxo Claro em todo o aplicativo */
+    /* Fundo Roxo Claro */
     .stApp {
         background-color: #f4eef8 !important;
     }
 
-    /* Barra Lateral Roxo Suave */
+    /* Barra Lateral */
     [data-testid="stSidebar"] {
         background-color: #eae0f2 !important;
         border-right: 2px solid #d4c2e3;
     }
 
-    /* Título Principal */
+    /* Títulos */
     .main-header {
         color: #3b0a45;
-        font-size: 2.3rem;
+        font-size: 2.1rem;
         font-weight: 800;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
     }
 
     .sub-header {
         color: #63406e;
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 600;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
     }
 
-    /* Estilo para Cartões de KPIs */
+    /* Estilo Ajustado para os Cartões de KPIs */
     [data-testid="stMetric"] {
         background-color: #ffffff !important;
         border: 2px solid #3b0a45 !important;
-        padding: 16px 20px !important;
-        border-radius: 14px !important;
-        box-shadow: 0 4px 10px rgba(59, 10, 69, 0.08) !important;
+        padding: 12px 16px !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 8px rgba(59, 10, 69, 0.06) !important;
     }
 
     [data-testid="stMetricLabel"] {
         color: #5c1f69 !important;
         font-weight: 700 !important;
-        font-size: 0.95rem !important;
+        font-size: 0.85rem !important;
     }
 
     [data-testid="stMetricValue"] {
         color: #28052f !important;
         font-weight: 800 !important;
+        font-size: 1.5rem !important;
     }
 
-    /* Botões Roxo Escuro Estilizados */
+    /* Botões Roxo Escuro */
     .stButton > button, div[data-testid="stFileUploader"] section button {
         background-color: #4a0e56 !important;
         color: #ffffff !important;
         font-weight: 700 !important;
-        font-size: 0.95rem !important;
-        border-radius: 10px !important;
+        font-size: 0.9rem !important;
+        border-radius: 8px !important;
         border: none !important;
-        padding: 10px 24px !important;
-        box-shadow: 0 4px 8px rgba(74, 14, 86, 0.3) !important;
+        padding: 8px 20px !important;
+        box-shadow: 0 3px 6px rgba(74, 14, 86, 0.25) !important;
         transition: all 0.2s ease-in-out !important;
     }
 
     .stButton > button:hover, div[data-testid="stFileUploader"] section button:hover {
         background-color: #2d0535 !important;
-        box-shadow: 0 6px 14px rgba(45, 5, 53, 0.4) !important;
-        transform: translateY(-2px);
+        transform: translateY(-1px);
         color: #ffffff !important;
     }
 
-    /* Botão de Download personalizado */
-    .stDownloadButton > button {
-        background-color: #3b0a45 !important;
-        color: #ffffff !important;
-        font-weight: 700 !important;
-        border-radius: 10px !important;
-    }
-
-    /* Área de Upload de Ficheiros */
+    /* Área de Upload */
     div[data-testid="stFileUploader"] section {
         background-color: #ffffff !important;
         border: 2px dashed #4a0e56 !important;
-        border-radius: 14px !important;
-        padding: 15px !important;
+        border-radius: 12px !important;
+        padding: 12px !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Função de conversão numéricas
+# Função de conversão numérica
 def converter_para_numero(serie):
     if serie.dtype == 'object':
         serie = (
@@ -120,9 +112,9 @@ def converter_para_numero(serie):
 
 # --- BARRA LATERAL (Sidebar) ---
 with st.sidebar:
-    st.image("https://img.icons8.com/color/96/blueberry.png", width=75)
+    st.image("https://img.icons8.com/color/96/blueberry.png", width=70)
     st.markdown("<h2 style='color: #3b0a45; font-weight: 800; margin-bottom: 0;'>Açaí Flash</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #63406e; font-weight: 600;'>Gestão Operacional 99Food</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #63406e; font-weight: 600; font-size: 0.85rem;'>Gestão Operacional 99Food</p>", unsafe_allow_html=True)
     st.divider()
     
     st.markdown("<h4 style='color: #3b0a45;'>📁 Alimentar Sistema</h4>", unsafe_allow_html=True)
@@ -140,7 +132,6 @@ st.markdown('<div class="sub-header">Acompanhamento consolidado de vendas e dese
 
 if uploaded_file is not None:
     try:
-        # Tenta guardar cópia na pasta raw se não estiver bloqueado
         raw_path = BASE_DIR / "data" / "raw" / "relatorio_99food.xlsx"
         raw_path.parent.mkdir(parents=True, exist_ok=True)
         try:
@@ -157,7 +148,7 @@ if uploaded_file is not None:
         col_visitantes = 'Visitantes da loja'
         col_novos = 'Novos clientes'
 
-        # Cálculos de Indicadores
+        # Cálculos
         total_vendas = converter_para_numero(df_raw[col_vendas]).sum() if col_vendas in df_raw.columns else 0.0
         receita_total = converter_para_numero(df_raw[col_receita]).sum() if col_receita in df_raw.columns else 0.0
         total_visitantes = converter_para_numero(df_raw[col_visitantes]).sum() if col_visitantes in df_raw.columns else 0.0
@@ -166,25 +157,25 @@ if uploaded_file is not None:
         ticket_medio = receita_total / total_vendas if total_vendas > 0 else 0.0
         taxa_conversao = (total_vendas / total_visitantes * 100) if total_visitantes > 0 else 0.0
 
-        # --- SEÇÃO 1: INDICADORES ---
-        st.markdown("<h3 style='color: #3b0a45; font-weight: 700;'>📊 Indicadores de Desempenho</h3>", unsafe_allow_html=True)
+        # --- SEÇÃO 1: INDICADORES EM 3 COLUNAS ---
+        st.markdown("<h3 style='color: #3b0a45; font-weight: 700; font-size: 1.2rem;'>📊 Indicadores de Desempenho</h3>", unsafe_allow_html=True)
         
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("💰 Receita Total", f"R$ {receita_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-        col2.metric("📦 Pedidos Concluídos", f"{int(total_vendas)}")
-        col3.metric("🎯 Ticket Médio", f"R$ {ticket_medio:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-        col4.metric("🔥 Taxa Conversão", f"{taxa_conversao:.2f}%".replace(".", ","))
+        c1, c2, c3 = st.columns(3)
+        c1.metric("💰 Receita Total", f"R$ {receita_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+        c2.metric("📦 Pedidos Concluídos", f"{int(total_vendas)}")
+        c3.metric("🎯 Ticket Médio", f"R$ {ticket_medio:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        col5, col6 = st.columns(2)
-        col5.metric("👀 Visitantes na Loja", f"{int(total_visitantes)}")
-        col6.metric("👤 Novos Clientes", f"{int(novos_clientes)}")
+        st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
+
+        c4, c5, c6 = st.columns(3)
+        c4.metric("🔥 Taxa de Conversão", f"{taxa_conversao:.2f}%".replace(".", ","))
+        c5.metric("👀 Visitantes na Loja", f"{int(total_visitantes)}")
+        c6.metric("👤 Novos Clientes", f"{int(novos_clientes)}")
 
         st.divider()
 
-        # --- SEÇÃO 2: GRÁFICOS ---
-        st.markdown("<h3 style='color: #3b0a45; font-weight: 700;'>📈 Visão Gráfica</h3>", unsafe_allow_html=True)
+        # --- SEÇÃO 2: GRÁFICOS COM COR PERSONALIZADA ---
+        st.markdown("<h3 style='color: #3b0a45; font-weight: 700; font-size: 1.2rem;'>📈 Visão Gráfica</h3>", unsafe_allow_html=True)
         
         cols_exibir = [c for c in [col_vendas, col_receita, col_visitantes, col_novos] if c in df_raw.columns]
         df_exibir = df_raw[cols_exibir].copy()
@@ -194,16 +185,16 @@ if uploaded_file is not None:
         graf1, graf2 = st.columns(2)
         
         with graf1:
-            st.markdown("<p style='color: #3b0a45; font-weight: 600;'>Pedidos vs. Novos Clientes</p>", unsafe_allow_html=True)
-            st.bar_chart(df_exibir[[col_vendas, col_novos]])
+            st.markdown("<p style='color: #3b0a45; font-weight: 600; font-size: 0.9rem;'>Pedidos vs. Novos Clientes</p>", unsafe_allow_html=True)
+            st.bar_chart(df_exibir[[col_vendas, col_novos]], color=["#4a0e56", "#8e44ad"])
 
         with graf2:
-            st.markdown("<p style='color: #3b0a45; font-weight: 600;'>Fluxo de Visitantes</p>", unsafe_allow_html=True)
-            st.line_chart(df_exibir[col_visitantes])
+            st.markdown("<p style='color: #3b0a45; font-weight: 600; font-size: 0.9rem;'>Fluxo de Visitantes</p>", unsafe_allow_html=True)
+            st.line_chart(df_exibir[col_visitantes], color="#4a0e56")
 
         st.divider()
 
-        # --- SEÇÃO 3: TABELA ---
+        # --- SEÇÃO 3: TABELA COMPLETA ---
         with st.expander("📋 Visualizar Tabela Completa de Dados"):
             st.dataframe(df_exibir, width="stretch")
             
