@@ -12,42 +12,101 @@ st.set_page_config(
 
 BASE_DIR = Path(__file__).resolve().parent
 
-# Estilização visual personalizada (Tema Açaí Flash)
+# Estilização CSS Personalizada (Fundo Roxo Claro, Botões Roxo Escuro, Fonte Moderna)
 st.markdown("""
     <style>
-    /* Estilo para os cartões de KPIs */
-    [data-testid="stMetric"] {
-        background-color: #f7f3f9;
-        border: 1px solid #e1d5e7;
-        padding: 15px 20px;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+
+    /* Fonte Global */
+    html, body, [class*="css"] {
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
     }
-    [data-testid="stMetricLabel"] {
-        color: #4A154B;
-        font-weight: 600;
-        font-size: 0.95rem;
+
+    /* Fundo Roxo Claro em todo o aplicativo */
+    .stApp {
+        background-color: #f4eef8 !important;
     }
-    [data-testid="stMetricValue"] {
-        color: #2D002E;
-        font-weight: 700;
+
+    /* Barra Lateral Roxo Suave */
+    [data-testid="stSidebar"] {
+        background-color: #eae0f2 !important;
+        border-right: 2px solid #d4c2e3;
     }
-    /* Estilo do cabeçalho */
+
+    /* Título Principal */
     .main-header {
-        color: #3b003d;
-        font-size: 2.2rem;
+        color: #3b0a45;
+        font-size: 2.3rem;
         font-weight: 800;
-        margin-bottom: 0px;
+        margin-bottom: 4px;
     }
+
     .sub-header {
-        color: #666;
+        color: #63406e;
         font-size: 1rem;
+        font-weight: 600;
         margin-bottom: 25px;
+    }
+
+    /* Estilo para Cartões de KPIs */
+    [data-testid="stMetric"] {
+        background-color: #ffffff !important;
+        border: 2px solid #3b0a45 !important;
+        padding: 16px 20px !important;
+        border-radius: 14px !important;
+        box-shadow: 0 4px 10px rgba(59, 10, 69, 0.08) !important;
+    }
+
+    [data-testid="stMetricLabel"] {
+        color: #5c1f69 !important;
+        font-weight: 700 !important;
+        font-size: 0.95rem !important;
+    }
+
+    [data-testid="stMetricValue"] {
+        color: #28052f !important;
+        font-weight: 800 !important;
+    }
+
+    /* Botões Roxo Escuro Estilizados */
+    .stButton > button, div[data-testid="stFileUploader"] section button {
+        background-color: #4a0e56 !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        font-size: 0.95rem !important;
+        border-radius: 10px !important;
+        border: none !important;
+        padding: 10px 24px !important;
+        box-shadow: 0 4px 8px rgba(74, 14, 86, 0.3) !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+
+    .stButton > button:hover, div[data-testid="stFileUploader"] section button:hover {
+        background-color: #2d0535 !important;
+        box-shadow: 0 6px 14px rgba(45, 5, 53, 0.4) !important;
+        transform: translateY(-2px);
+        color: #ffffff !important;
+    }
+
+    /* Botão de Download personalizado */
+    .stDownloadButton > button {
+        background-color: #3b0a45 !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        border-radius: 10px !important;
+    }
+
+    /* Área de Upload de Ficheiros */
+    div[data-testid="stFileUploader"] section {
+        background-color: #ffffff !important;
+        border: 2px dashed #4a0e56 !important;
+        border-radius: 14px !important;
+        padding: 15px !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Função auxiliar de conversão numéricas
+# Função de conversão numéricas
 def converter_para_numero(serie):
     if serie.dtype == 'object':
         serie = (
@@ -61,27 +120,27 @@ def converter_para_numero(serie):
 
 # --- BARRA LATERAL (Sidebar) ---
 with st.sidebar:
-    st.image("https://img.icons8.com/color/96/blueberry.png", width=70)
-    st.title("🫐 Açaí Flash")
-    st.caption("Painel de Gestão de Vendas (99Food)")
+    st.image("https://img.icons8.com/color/96/blueberry.png", width=75)
+    st.markdown("<h2 style='color: #3b0a45; font-weight: 800; margin-bottom: 0;'>Açaí Flash</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #63406e; font-weight: 600;'>Gestão Operacional 99Food</p>", unsafe_allow_html=True)
     st.divider()
     
-    st.subheader("📁 Alimentar Sistema")
+    st.markdown("<h4 style='color: #3b0a45;'>📁 Alimentar Sistema</h4>", unsafe_allow_html=True)
     uploaded_file = st.file_uploader(
-        "Carregue o relatório Excel (.xlsx)", 
+        "Selecione o relatório Excel (.xlsx)", 
         type=["xlsx"]
     )
     
     st.divider()
-    st.info("💡 **Dica:** Descarregue o relatório do portal da 99Food e solte-o aqui para atualizar os gráficos.")
+    st.info("💡 **Como usar:** Faça o download do relatório no portal da 99Food e envie-o aqui para atualizar o painel.")
 
-# --- CORPO PRINCIPAL DO DASHBOARD ---
+# --- CORPO PRINCIPAL ---
 st.markdown('<div class="main-header">🫐 Dashboard Operacional</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Acompanhamento consolidado do desempenho de vendas no delivery.</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Acompanhamento consolidado de vendas e desempenho no delivery.</div>', unsafe_allow_html=True)
 
 if uploaded_file is not None:
     try:
-        # Tenta guardar cópia local (se não estiver bloqueado)
+        # Tenta guardar cópia na pasta raw se não estiver bloqueado
         raw_path = BASE_DIR / "data" / "raw" / "relatorio_99food.xlsx"
         raw_path.parent.mkdir(parents=True, exist_ok=True)
         try:
@@ -92,13 +151,13 @@ if uploaded_file is not None:
 
         df_raw = pd.read_excel(uploaded_file)
 
-        # Mapeamento dinâmico de colunas
+        # Mapeamento de colunas
         col_vendas = 'Total de vendas realizadas' if 'Total de vendas realizadas' in df_raw.columns else 'Vendas concluidas'
         col_receita = 'Receita total de vendas' if 'Receita total de vendas' in df_raw.columns else 'Receita de vendas(R$)'
         col_visitantes = 'Visitantes da loja'
         col_novos = 'Novos clientes'
 
-        # Totais
+        # Cálculos de Indicadores
         total_vendas = converter_para_numero(df_raw[col_vendas]).sum() if col_vendas in df_raw.columns else 0.0
         receita_total = converter_para_numero(df_raw[col_receita]).sum() if col_receita in df_raw.columns else 0.0
         total_visitantes = converter_para_numero(df_raw[col_visitantes]).sum() if col_visitantes in df_raw.columns else 0.0
@@ -107,14 +166,14 @@ if uploaded_file is not None:
         ticket_medio = receita_total / total_vendas if total_vendas > 0 else 0.0
         taxa_conversao = (total_vendas / total_visitantes * 100) if total_visitantes > 0 else 0.0
 
-        # --- SEÇÃO 1: CARTÕES DE KPIS ---
-        st.subheader("📈 Visão Geral de Desempenho")
+        # --- SEÇÃO 1: INDICADORES ---
+        st.markdown("<h3 style='color: #3b0a45; font-weight: 700;'>📊 Indicadores de Desempenho</h3>", unsafe_allow_html=True)
         
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("💰 Receita Total", f"R$ {receita_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
         col2.metric("📦 Pedidos Concluídos", f"{int(total_vendas)}")
         col3.metric("🎯 Ticket Médio", f"R$ {ticket_medio:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-        col4.metric("🔥 Taxa de Conversão", f"{taxa_conversao:.2f}%".replace(".", ","))
+        col4.metric("🔥 Taxa Conversão", f"{taxa_conversao:.2f}%".replace(".", ","))
 
         st.markdown("<br>", unsafe_allow_html=True)
         
@@ -124,8 +183,8 @@ if uploaded_file is not None:
 
         st.divider()
 
-        # --- SEÇÃO 2: GRÁFICOS VISUAIS ---
-        st.subheader("📊 Análise Gráfica")
+        # --- SEÇÃO 2: GRÁFICOS ---
+        st.markdown("<h3 style='color: #3b0a45; font-weight: 700;'>📈 Visão Gráfica</h3>", unsafe_allow_html=True)
         
         cols_exibir = [c for c in [col_vendas, col_receita, col_visitantes, col_novos] if c in df_raw.columns]
         df_exibir = df_raw[cols_exibir].copy()
@@ -135,17 +194,17 @@ if uploaded_file is not None:
         graf1, graf2 = st.columns(2)
         
         with graf1:
-            st.markdown("**Comparativo: Pedidos vs. Novos Clientes**")
+            st.markdown("<p style='color: #3b0a45; font-weight: 600;'>Pedidos vs. Novos Clientes</p>", unsafe_allow_html=True)
             st.bar_chart(df_exibir[[col_vendas, col_novos]])
 
         with graf2:
-            st.markdown("**Volume de Visitantes**")
+            st.markdown("<p style='color: #3b0a45; font-weight: 600;'>Fluxo de Visitantes</p>", unsafe_allow_html=True)
             st.line_chart(df_exibir[col_visitantes])
 
         st.divider()
 
-        # --- SEÇÃO 3: TABELA E EXPORTAÇÃO ---
-        with st.expander("📋 Visualizar Tabela Completa de Dados Processados"):
+        # --- SEÇÃO 3: TABELA ---
+        with st.expander("📋 Visualizar Tabela Completa de Dados"):
             st.dataframe(df_exibir, width="stretch")
             
             csv = df_exibir.to_csv(index=False).encode('utf-8')
@@ -157,7 +216,7 @@ if uploaded_file is not None:
             )
 
     except Exception as e:
-        st.error(f"Erro ao processar o ficheiro carregado: {e}")
+        st.error(f"Erro ao processar o ficheiro: {e}")
 
 else:
-    st.info("👈 Por favor, utilize a barra lateral à esquerda para carregar o relatório Excel da 99Food.")
+    st.info("👈 Utilize o menu à esquerda para carregar o relatório Excel da 99Food.")
