@@ -1,6 +1,13 @@
 import streamlit as st
-import pandas as pd
 from pathlib import Path
+import sys
+
+# Adiciona a pasta raiz ao caminho do Python para encontrarmos a pasta 'src'
+BASE_DIR = Path(__file__).resolve().parent
+sys.path.append(str(BASE_DIR))
+
+# Importamos a nossa função profissional de ETL
+from src.etl import processar_relatorio_99food
 
 # Configuração da página Web
 st.set_page_config(
@@ -10,30 +17,24 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-BASE_DIR = Path(__file__).resolve().parent
-
 # Estilização CSS Personalizada
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
 
-    /* Fonte Global */
     html, body, [class*="css"] {
         font-family: 'Plus Jakarta Sans', sans-serif !important;
     }
 
-    /* Fundo Roxo Claro */
     .stApp {
         background-color: #f4eef8 !important;
     }
 
-    /* Barra Lateral */
     [data-testid="stSidebar"] {
         background-color: #eae0f2 !important;
         border-right: 2px solid #d4c2e3;
     }
 
-    /* Títulos */
     .main-header {
         color: #3b0a45;
         font-size: 2.1rem;
@@ -48,7 +49,6 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    /* Estilo Ajustado para os Cartões de KPIs */
     [data-testid="stMetric"] {
         background-color: #ffffff !important;
         border: 2px solid #3b0a45 !important;
@@ -69,7 +69,6 @@ st.markdown("""
         font-size: 1.5rem !important;
     }
 
-    /* Botões Roxo Escuro */
     .stButton > button, div[data-testid="stFileUploader"] section button {
         background-color: #4a0e56 !important;
         color: #ffffff !important;
@@ -88,7 +87,6 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* Área de Upload */
     div[data-testid="stFileUploader"] section {
         background-color: #ffffff !important;
         border: 2px dashed #4a0e56 !important;
@@ -98,19 +96,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Função de conversão numérica
-def converter_para_numero(serie):
-    if serie.dtype == 'object':
-        serie = (
-            serie.astype(str)
-            .str.replace('R$', '', regex=False)
-            .str.replace(' ', '', regex=False)
-            .str.replace('.', '', regex=False)
-            .str.replace(',', '.', regex=False)
-        )
-    return pd.to_numeric(serie, errors='coerce').fillna(0)
-
-# --- BARRA LATERAL (Sidebar) ---
+# --- BARRA LATERAL ---
 with st.sidebar:
     st.image("https://img.icons8.com/color/96/blueberry.png", width=70)
     st.markdown("<h2 style='color: #3b0a45; font-weight: 800; margin-bottom: 0;'>Açaí Flash</h2>", unsafe_allow_html=True)
@@ -124,73 +110,68 @@ with st.sidebar:
     )
     
     st.divider()
-    st.info("💡 **Como usar:** Faça o download do relatório no portal da 99Food e envie-o aqui para atualizar o painel.")
+    st.info("💡 **Pipeline Ativo:** Os dados são processados de forma centralizada pelo nosso motor ETL.")
 
 # --- CORPO PRINCIPAL ---
 st.markdown('<div class="main-header">🫐 Dashboard Operacional</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Acompanhamento consolidado de vendas e desempenho no delivery.</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Arquitetura Integrada — Açaí Flash Data Pipeline.</div>', unsafe_allow_html=True)
 
 if uploaded_file is not None:
     try:
+        # Guarda uma cópia local do ficheiro bruto na pasta data/raw
         raw_path = BASE_DIR / "data" / "raw" / "relatorio_99food.xlsx"
         raw_path.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            with open(raw_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-        except PermissionError:
-            pass
+        with open(raw_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
 
-        df_raw = pd.read_excel(uploaded_file)
+        # --- AQUI ESTÁ A MAGIA DA ARQUITETURA ---
+        # Chamamos o nosso módulo ETL para processar o ficheiro guardado
+        dados_processados = processar_relatorio_99food(raw_path)
 
-        # Mapeamento de colunas
-        col_vendas = 'Total de vendas realizadas' if 'Total de vendas realizadas' in df_raw.columns else 'Vendas concluidas'
-        col_receita = 'Receita total de vendas' if 'Receita total de vendas' in df_raw.columns else 'Receita de vendas(R$)'
-        col_visitantes = 'Visitantes da loja'
-        col_novos = 'Novos clientes'
+        # Extraímos os indicadores limpos retornados pelo dicionário do ETL
+        receita_total = dados_processados["receita_total"]
+        total_vendas = dados_processados["total_vendas"]
+        ticket_medio = dados_processados["ticket_medio"]
+        taxa_conversao = dados_processados["taxa_conversao"]
+        total_visitantes = dados_processados["total_visitantes"]
+        novos_clientes = dados_processados["novos_clientes"]
+        df_exibir = dados_processados["dataframe_limpo"]
 
-        # Cálculos
-        total_vendas = converter_para_numero(df_raw[col_vendas]).sum() if col_vendas in df_raw.columns else 0.0
-        receita_total = converter_para_numero(df_raw[col_receita]).sum() if col_receita in df_raw.columns else 0.0
-        total_visitantes = converter_para_numero(df_raw[col_visitantes]).sum() if col_visitantes in df_raw.columns else 0.0
-        novos_clientes = converter_para_numero(df_raw[col_novos]).sum() if col_novos in df_raw.columns else 0.0
-
-        ticket_medio = receita_total / total_vendas if total_vendas > 0 else 0.0
-        taxa_conversao = (total_vendas / total_visitantes * 100) if total_visitantes > 0 else 0.0
-
-        # --- SEÇÃO 1: INDICADORES EM 3 COLUNAS ---
+        # --- SEÇÃO 1: INDICADORES ---
         st.markdown("<h3 style='color: #3b0a45; font-weight: 700; font-size: 1.2rem;'>📊 Indicadores de Desempenho</h3>", unsafe_allow_html=True)
         
         c1, c2, c3 = st.columns(3)
         c1.metric("💰 Receita Total", f"R$ {receita_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-        c2.metric("📦 Pedidos Concluídos", f"{int(total_vendas)}")
+        c2.metric("📦 Pedidos Concluídos", f"{total_vendas}")
         c3.metric("🎯 Ticket Médio", f"R$ {ticket_medio:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
 
         st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
 
         c4, c5, c6 = st.columns(3)
         c4.metric("🔥 Taxa de Conversão", f"{taxa_conversao:.2f}%".replace(".", ","))
-        c5.metric("👀 Visitantes na Loja", f"{int(total_visitantes)}")
-        c6.metric("👤 Novos Clientes", f"{int(novos_clientes)}")
+        c5.metric("👀 Visitantes na Loja", f"{total_visitantes}")
+        c6.metric("👤 Novos Clientes", f"{novos_clientes}")
 
         st.divider()
 
-        # --- SEÇÃO 2: GRÁFICOS COM COR PERSONALIZADA ---
+        # --- SEÇÃO 2: GRÁFICOS ---
         st.markdown("<h3 style='color: #3b0a45; font-weight: 700; font-size: 1.2rem;'>📈 Visão Gráfica</h3>", unsafe_allow_html=True)
         
-        cols_exibir = [c for c in [col_vendas, col_receita, col_visitantes, col_novos] if c in df_raw.columns]
-        df_exibir = df_raw[cols_exibir].copy()
-        for col in df_exibir.columns:
-            df_exibir[col] = converter_para_numero(df_exibir[col])
+        col_vendas_nome = 'Total de vendas realizadas' if 'Total de vendas realizadas' in df_exibir.columns else 'Vendas concluidas'
+        col_novos_nome = 'Novos clientes' if 'Novos clientes' in df_exibir.columns else 'Novos'
+        col_visitantes_nome = 'Visitantes da loja' if 'Visitantes da loja' in df_exibir.columns else 'Visitantes'
 
         graf1, graf2 = st.columns(2)
         
         with graf1:
             st.markdown("<p style='color: #3b0a45; font-weight: 600; font-size: 0.9rem;'>Pedidos vs. Novos Clientes</p>", unsafe_allow_html=True)
-            st.bar_chart(df_exibir[[col_vendas, col_novos]], color=["#4a0e56", "#8e44ad"])
+            if col_vendas_nome in df_exibir.columns and col_novos_nome in df_exibir.columns:
+                st.bar_chart(df_exibir[[col_vendas_nome, col_novos_nome]], color=["#4a0e56", "#8e44ad"])
 
         with graf2:
             st.markdown("<p style='color: #3b0a45; font-weight: 600; font-size: 0.9rem;'>Fluxo de Visitantes</p>", unsafe_allow_html=True)
-            st.line_chart(df_exibir[col_visitantes], color="#4a0e56")
+            if col_visitantes_nome in df_exibir.columns:
+                st.line_chart(df_exibir[col_visitantes_nome], color="#4a0e56")
 
         st.divider()
 
@@ -207,7 +188,7 @@ if uploaded_file is not None:
             )
 
     except Exception as e:
-        st.error(f"Erro ao processar o ficheiro: {e}")
+        st.error(f"Erro ao processar o ficheiro pelo motor ETL: {e}")
 
 else:
     st.info("👈 Utilize o menu à esquerda para carregar o relatório Excel da 99Food.")
