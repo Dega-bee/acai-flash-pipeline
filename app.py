@@ -2,12 +2,13 @@ import streamlit as st
 from pathlib import Path
 import sys
 
-# Adiciona a pasta raiz ao caminho do Python para encontrarmos a pasta 'src'
+# Adiciona a pasta raiz ao caminho do Python
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.append(str(BASE_DIR))
 
-# Importamos a nossa função profissional de ETL
+# Importamos o nosso ETL e o módulo de Banco de Dados
 from src.etl import processar_relatorio_99food
+from src.database import carregar_historico_banco
 
 # Configuração da página Web
 st.set_page_config(
@@ -100,7 +101,7 @@ st.markdown("""
 with st.sidebar:
     st.image("https://img.icons8.com/color/96/blueberry.png", width=70)
     st.markdown("<h2 style='color: #3b0a45; font-weight: 800; margin-bottom: 0;'>Açaí Flash</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #63406e; font-weight: 600; font-size: 0.85rem;'>Gestão Operacional 99Food</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #63406e; font-weight: 600; font-size: 0.85rem;'>Gestão Operacional & IA</p>", unsafe_allow_html=True)
     st.divider()
     
     st.markdown("<h4 style='color: #3b0a45;'>📁 Alimentar Sistema</h4>", unsafe_allow_html=True)
@@ -110,25 +111,23 @@ with st.sidebar:
     )
     
     st.divider()
-    st.info("💡 **Pipeline Ativo:** Os dados são processados de forma centralizada pelo nosso motor ETL.")
+    st.info("💡 **Arquitetura Ativa:** ETL centralizado com persistência em SQLite e suporte a Agentes de IA.")
 
 # --- CORPO PRINCIPAL ---
 st.markdown('<div class="main-header">🫐 Dashboard Operacional</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Arquitetura Integrada — Açaí Flash Data Pipeline.</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Sistema Operacional de IA — Açaí Flash Data Pipeline.</div>', unsafe_allow_html=True)
 
 if uploaded_file is not None:
     try:
-        # Guarda uma cópia local do ficheiro bruto na pasta data/raw
+        # Guarda o ficheiro bruto na pasta data/raw
         raw_path = BASE_DIR / "data" / "raw" / "relatorio_99food.xlsx"
         raw_path.parent.mkdir(parents=True, exist_ok=True)
         with open(raw_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
 
-        # --- AQUI ESTÁ A MAGIA DA ARQUITETURA ---
-        # Chamamos o nosso módulo ETL para processar o ficheiro guardado
+        # Executa o ETL (que automaticamente valida, limpa e guarda no SQLite)
         dados_processados = processar_relatorio_99food(raw_path)
 
-        # Extraímos os indicadores limpos retornados pelo dicionário do ETL
         receita_total = dados_processados["receita_total"]
         total_vendas = dados_processados["total_vendas"]
         ticket_medio = dados_processados["ticket_medio"]
@@ -137,8 +136,8 @@ if uploaded_file is not None:
         novos_clientes = dados_processados["novos_clientes"]
         df_exibir = dados_processados["dataframe_limpo"]
 
-        # --- SEÇÃO 1: INDICADORES ---
-        st.markdown("<h3 style='color: #3b0a45; font-weight: 700; font-size: 1.2rem;'>📊 Indicadores de Desempenho</h3>", unsafe_allow_html=True)
+        # --- SEÇÃO 1: INDICADORES DO RELATÓRIO ATUAL ---
+        st.markdown("<h3 style='color: #3b0a45; font-weight: 700; font-size: 1.2rem;'>📊 Indicadores do Relatório Atual</h3>", unsafe_allow_html=True)
         
         c1, c2, c3 = st.columns(3)
         c1.metric("💰 Receita Total", f"R$ {receita_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
@@ -154,41 +153,23 @@ if uploaded_file is not None:
 
         st.divider()
 
-        # --- SEÇÃO 2: GRÁFICOS ---
-        st.markdown("<h3 style='color: #3b0a45; font-weight: 700; font-size: 1.2rem;'>📈 Visão Gráfica</h3>", unsafe_allow_html=True)
-        
-        col_vendas_nome = 'Total de vendas realizadas' if 'Total de vendas realizadas' in df_exibir.columns else 'Vendas concluidas'
-        col_novos_nome = 'Novos clientes' if 'Novos clientes' in df_exibir.columns else 'Novos'
-        col_visitantes_nome = 'Visitantes da loja' if 'Visitantes da loja' in df_exibir.columns else 'Visitantes'
-
-        graf1, graf2 = st.columns(2)
-        
-        with graf1:
-            st.markdown("<p style='color: #3b0a45; font-weight: 600; font-size: 0.9rem;'>Pedidos vs. Novos Clientes</p>", unsafe_allow_html=True)
-            if col_vendas_nome in df_exibir.columns and col_novos_nome in df_exibir.columns:
-                st.bar_chart(df_exibir[[col_vendas_nome, col_novos_nome]], color=["#4a0e56", "#8e44ad"])
-
-        with graf2:
-            st.markdown("<p style='color: #3b0a45; font-weight: 600; font-size: 0.9rem;'>Fluxo de Visitantes</p>", unsafe_allow_html=True)
-            if col_visitantes_nome in df_exibir.columns:
-                st.line_chart(df_exibir[col_visitantes_nome], color="#4a0e56")
-
-        st.divider()
-
-        # --- SEÇÃO 3: TABELA COMPLETA ---
-        with st.expander("📋 Visualizar Tabela Completa de Dados"):
-            st.dataframe(df_exibir, width="stretch")
-            
-            csv = df_exibir.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Descarregar Tabela em CSV",
-                data=csv,
-                file_name="relatorio_acai_flash_processado.csv",
-                mime="text/csv",
-            )
-
     except Exception as e:
         st.error(f"Erro ao processar o ficheiro pelo motor ETL: {e}")
 
 else:
-    st.info("👈 Utilize o menu à esquerda para carregar o relatório Excel da 99Food.")
+    st.info("👈 Carregue um relatório Excel na barra lateral para analisar os dados atuais.")
+
+# --- SEÇÃO 2: HISTÓRICO ACUMULADO DO BANCO DE DADOS ---
+st.markdown("<h3 style='color: #3b0a45; font-weight: 700; font-size: 1.2rem;'>📈 Histórico Operacional Acumulado (Banco SQLite)</h3>", unsafe_allow_html=True)
+
+df_historico = carregar_historico_banco()
+
+if not df_historico.empty:
+    st.dataframe(df_historico, width="stretch")
+    
+    # Gráfico de evolução da receita histórica
+    if len(df_historico) > 1:
+        st.markdown("<p style='color: #63406e; font-weight: 600; font-size: 0.9rem;'>Evolução da Receita Total por Registo</p>", unsafe_allow_html=True)
+        st.line_chart(df_historico.set_index('data_processamento')['receita_total'], color="#4a0e56")
+else:
+    st.warning("Ainda não existem dados históricos gravados no banco de dados. Carregue pelo menos um relatório na barra lateral.")
