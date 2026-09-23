@@ -1,5 +1,6 @@
 import pandas as pd
 from pathlib import Path
+from src.database import salvar_indicadores_no_banco
 
 def converter_para_numero(serie):
     """Converte colunas monetárias e textuais em números limpos para cálculo."""
@@ -14,7 +15,7 @@ def converter_para_numero(serie):
     return pd.to_numeric(serie, errors='coerce').fillna(0)
 
 def processar_relatorio_99food(caminho_arquivo):
-    """Lê o Excel bruto da 99Food, limpa os dados e retorna um dicionário com os KPIs calculados."""
+    """Lê o Excel bruto da 99Food, limpa os dados, guarda no banco e retorna os indicadores."""
     
     df_raw = pd.read_excel(caminho_arquivo)
 
@@ -43,5 +44,11 @@ def processar_relatorio_99food(caminho_arquivo):
         "novos_clientes": int(novos_clientes),
         "dataframe_limpo": df_raw
     }
+
+    # --- PERSISTÊNCIA AUTOMÁTICA NO BANCO DE DADOS ---
+    try:
+        salvar_indicadores_no_banco(indicadores)
+    except Exception as e:
+        print(f"Erro ao salvar no banco de dados: {e}")
 
     return indicadores
