@@ -26,13 +26,10 @@ def criar_banco_se_nao_existir():
     conexao.close()
 
 def salvar_indicadores_no_banco(indicadores):
-    """Guarda os indicadores no SQLite apenas se o último registo for diferente (evita duplicação por reruns)."""
+    """Guarda os indicadores no SQLite e limpa automaticamente eventuais duplicados."""
     criar_banco_se_nao_existir()
     
     conexao = sqlite3.connect(DB_PATH)
-    
-    # Verifica o último registo gravado para evitar duplicados seguidos
-    df_atual = pd.read_sql("SELECT * FROM vendas_99food", conexao)
     
     novo_registo = {
         "receita_total": float(indicadores["receita_total"]),
@@ -43,24 +40,25 @@ def salvar_indicadores_no_banco(indicadores):
         "novos_clientes": int(indicadores["novos_clientes"])
     }
     
-    if not df_atual.empty:
-        ultimo = df_atual.iloc[-1]
-        # Se os valores principais forem idênticos ao último registo, não insere de novo
-        if (
-            float(ultimo["receita_total"]) == novo_registo["receita_total"] and
-            int(ultimo["total_vendas"]) == novo_registo["total_vendas"] and
-            int(ultimo["total_visitantes"]) == novo_registo["total_visitantes"]
-        ):
-            conexao.close()
-            return # Sai sem duplicar
-
-    # Insere se for um relatório novo
+    # Insere o novo registo
     df_novo = pd.DataFrame([novo_registo])
     df_novo.to_sql("vendas_99food", conexao, if_exists="append", index=False)
+    
+    # Limpeza automática: Mantém apenas a primeira ocorrência de cada conjunto de métricas idênticas
+    cursor = conexao.cursor()
+    cursor.execute("""
+        DELETE FROM vendas_99food 
+        WHERE id NOT IN (
+            SELECT MIN(id) 
+            FROM vendas_99food 
+            GROUP BY receita_total, total_vendas, ticket_medio, taxa_conversao, total_visitantes, novos_clientes
+        )
+    """)
+    conexao.commit()
     conexao.close()
 
 def carregar_historico_banco():
-    """Lê todo o histórico acumulado do SQLite e devolve um DataFrame do Pandas."""
+    """Lê todo o histórico acumulado do SQLite e devolve um DataFrame do Pandas limpo."""
     criar_banco_se_nao_existir()
     conexao = sqlite3.connect(DB_PATH)
     df = pd.read_sql("SELECT * FROM vendas_99food", conexao)
