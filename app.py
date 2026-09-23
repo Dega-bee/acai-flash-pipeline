@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
+from src.database import salvar_indicadores_no_banco
 
 # Configuração da página Web
 st.set_page_config(
@@ -157,6 +158,20 @@ if uploaded_file is not None:
         ticket_medio = receita_total / total_vendas if total_vendas > 0 else 0.0
         taxa_conversao = (total_vendas / total_visitantes * 100) if total_visitantes > 0 else 0.0
 
+        # --- GRAVAÇÃO SILENCIOSA NO SQL EM SEGUNDO PLANO ---
+        try:
+            dados_sql = {
+                "receita_total": float(receita_total),
+                "total_vendas": int(total_vendas),
+                "ticket_medio": float(ticket_medio),
+                "taxa_conversao": float(taxa_conversao),
+                "total_visitantes": int(total_visitantes),
+                "novos_clientes": int(novos_clientes)
+            }
+            salvar_indicadores_no_banco(dados_sql)
+        except Exception:
+            pass # Garante que se houver qualquer detalhe no banco, nunca afeta o visual do site
+
         # --- SEÇÃO 1: INDICADORES EM 3 COLUNAS ---
         st.markdown("<h3 style='color: #3b0a45; font-weight: 700; font-size: 1.2rem;'>📊 Indicadores de Desempenho</h3>", unsafe_allow_html=True)
         
@@ -196,7 +211,7 @@ if uploaded_file is not None:
 
         # --- SEÇÃO 3: TABELA COMPLETA ---
         with st.expander("📋 Visualizar Tabela Completa de Dados"):
-            st.dataframe(df_exibir, width="stretch")
+            st.dataframe(df_exibir, use_container_width=True)
             
             csv = df_exibir.to_csv(index=False).encode('utf-8')
             st.download_button(
