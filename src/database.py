@@ -1,20 +1,13 @@
 import sqlite3
-from pathlib import Path
 import pandas as pd
+from pathlib import Path
 
-# Define o caminho do banco de dados na pasta data/processed
-BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = BASE_DIR / "data" / "processed" / "acai_flash.db"
+DB_PATH = Path(__file__).resolve().parent.parent / "data" / "processed" / "acai_flash.db"
 
-def obter_conexao():
-    """Cria e retorna uma conexão com o banco de dados SQLite."""
+def criar_banco_se_nao_existir():
+    """Gera a pasta e a tabela de histórico no SQLite caso não existam."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conexao = sqlite3.connect(DB_PATH)
-    return conexao
-
-def criar_tabelas():
-    """Cria a tabela de histórico de vendas caso ela ainda não exista."""
-    conexao = obter_conexao()
     cursor = conexao.cursor()
     
     cursor.execute("""
@@ -29,37 +22,47 @@ def criar_tabelas():
             novos_clientes INTEGER
         )
     """)
-    
     conexao.commit()
     conexao.close()
 
 def salvar_indicadores_no_banco(indicadores):
-    """Insere um novo registo com os KPIs calculados pelo ETL no banco de dados."""
-    criar_tabelas()
-    conexao = obter_conexao()
-    cursor = conexao.cursor()
+    """Guarda os indicadores no SQLite apenas se o último registo for diferente (evita duplicação por reruns)."""
+    criar_banco_se_nao_existir()
     
-    cursor.execute("""
-        INSERT INTO vendas_99food (
-            receita_total, total_vendas, ticket_medio, 
-            taxa_conversao, total_visitantes, novos_clientes
-        ) VALUES (?, ?, ?, ?, ?, ?)
-    """, (
-        indicadores["receita_total"],
-        indicadores["total_vendas"],
-        indicadores["ticket_medio"],
-        indicadores["taxa_conversao"],
-        indicadores["total_visitantes"],
-        indicadores["novos_clientes"]
-    ))
+    conexao = sqlite3.connect(DB_PATH)
     
-    conexao.commit()
+    # Verifica o último registo gravado para evitar duplicados seguidos
+    df_atual = pd.read_sql("SELECT * FROM vendas_99food", conexao)
+    
+    novo_registo = {
+        "receita_total": float(indicadores["receita_total"]),
+        "total_vendas": int(indicadores["total_vendas"]),
+        "ticket_medio": float(indicadores["ticket_medio"]),
+        "taxa_conversao": float(indicadores["taxa_conversao"]),
+        "total_visitantes": int(indicadores["total_visitantes"]),
+        "novos_clientes": int(indicadores["novos_clientes"])
+    }
+    
+    if not df_atual.empty:
+        ultimo = df_atual.iloc[-1]
+        # Se os valores principais forem idênticos ao último registo, não insere de novo
+        if (
+            float(ultimo["receita_total"]) == novo_registo["receita_total"] and
+            int(ultimo["total_vendas"]) == novo_registo["total_vendas"] and
+            int(ultimo["total_visitantes"]) == novo_registo["total_visitantes"]
+        ):
+            conexao.close()
+            return # Sai sem duplicar
+
+    # Insere se for um relatório novo
+    df_novo = pd.DataFrame([novo_registo])
+    df_novo.to_sql("vendas_99food", conexao, if_exists="append", index=False)
     conexao.close()
 
 def carregar_historico_banco():
-    """Carrega todo o histórico armazenado no banco de dados para análise futura."""
-    criar_tabelas()
-    conexao = obter_conexao()
-    df_historico = pd.read_sql("SELECT * FROM vendas_99food", conexao)
+    """Lê todo o histórico acumulado do SQLite e devolve um DataFrame do Pandas."""
+    criar_banco_se_nao_existir()
+    conexao = sqlite3.connect(DB_PATH)
+    df = pd.read_sql("SELECT * FROM vendas_99food", conexao)
     conexao.close()
-    return df_historico
+    return df
